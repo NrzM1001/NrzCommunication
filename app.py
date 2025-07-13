@@ -4,6 +4,13 @@ eventlet.monkey_patch()
 import os
 if not os.path.exists('instance'):
     os.makedirs('instance')
+# Supprime la base existante si elle est corrompue (Render reset)
+db_path = os.path.join('instance', 'users.db')
+if os.path.exists(db_path):
+    try:
+        os.remove(db_path)
+    except Exception:
+        pass
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_socketio import SocketIO, send
 from flask_sqlalchemy import SQLAlchemy
