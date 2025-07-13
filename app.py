@@ -18,6 +18,9 @@ db = SQLAlchemy(app)
 socketio = SocketIO(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+# Création des tables à chaque démarrage
+with app.app_context():
+    db.create_all()
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -147,11 +150,6 @@ def handle_message(msg):
         send(f"{current_user.username}: {msg}", broadcast=True)
 
 if __name__ == '__main__':
-    if not os.path.exists('instance'):
-        os.makedirs('instance')
-    if not os.path.exists('instance/users.db'):
-        with app.app_context():
-            db.create_all()
     # Création d'un compte admin par défaut si aucun admin n'existe
     with app.app_context():
         if not User.query.filter_by(is_admin=True).first():
