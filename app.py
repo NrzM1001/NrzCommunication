@@ -144,7 +144,7 @@ def handle_message(msg):
         send(f"{current_user.username}: {msg}", broadcast=True)
 
 if __name__ == '__main__':
-    if not os.path.exists('users.db'):
+    if not os.path.exists('instance/users.db'):
         with app.app_context():
             db.create_all()
     # Création d'un compte admin par défaut si aucun admin n'existe
