@@ -10,7 +10,7 @@ import os
 
 app = Flask("NrzCommunication", instance_relative_config=True)
 app.config['SECRET_KEY'] = 'secret!'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(app.instance_path, 'users.db')}"
 db = SQLAlchemy(app)
 socketio = SocketIO(app)
 login_manager = LoginManager(app)
