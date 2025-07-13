@@ -1,12 +1,15 @@
+
 import eventlet
 eventlet.monkey_patch()
+import os
+if not os.path.exists('instance'):
+    os.makedirs('instance')
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_socketio import SocketIO, send
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin, current_user
 from email_validator import validate_email, EmailNotValidError
 from werkzeug.security import generate_password_hash, check_password_hash
-import os
 
 app = Flask("NrzCommunication", instance_relative_config=True)
 app.config['SECRET_KEY'] = 'secret!'
