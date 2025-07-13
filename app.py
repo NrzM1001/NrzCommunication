@@ -144,6 +144,8 @@ def handle_message(msg):
         send(f"{current_user.username}: {msg}", broadcast=True)
 
 if __name__ == '__main__':
+    if not os.path.exists('instance'):
+        os.makedirs('instance')
     if not os.path.exists('instance/users.db'):
         with app.app_context():
             db.create_all()
