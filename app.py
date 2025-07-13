@@ -8,9 +8,9 @@ from email_validator import validate_email, EmailNotValidError
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
-app = Flask("NrzCommunication")
+app = Flask("NrzCommunication", instance_relative_config=True)
 app.config['SECRET_KEY'] = 'secret!'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/users.db'
 db = SQLAlchemy(app)
 socketio = SocketIO(app)
 login_manager = LoginManager(app)
