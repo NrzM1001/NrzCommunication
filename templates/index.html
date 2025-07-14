@@ -30,9 +30,12 @@
                     </div>
                 </div>
                 <div class="card-body" id="chat-box" style="height: 400px; overflow-y: scroll;">
+                    {% for msg in messages %}
+                        <div><b>{{ msg.username }}</b> <span style="color: #aaa; font-size: 0.9em;">[{{ msg.timestamp.strftime('%d/%m/%Y %H:%M') }}]</span> : {{ msg.content }}</div>
+                    {% endfor %}
                 </div>
                 <div class="card-footer">
-                    <form id="chat-form">
+                    <form id="chat-form" autocomplete="off">
                         <div class="input-group">
                             <input id="message" autocomplete="off" class="form-control" placeholder="Votre message..." />
                             <button class="btn btn-primary" type="submit">Envoyer</button>
@@ -45,17 +48,25 @@
 </div>
 <script>
     var socket = io();
+    // Scroll to bottom on load
+    $(function() {
+        var chatBox = $('#chat-box');
+        chatBox.scrollTop(chatBox[0].scrollHeight);
+    });
+    // Envoi du message
     $('#chat-form').submit(function(e) {
         e.preventDefault();
         var msg = $('#message').val();
         if(msg.trim() !== '') {
-            socket.send(msg);
+            socket.emit('send_message', {content: msg});
             $('#message').val('');
         }
     });
-    socket.on('message', function(msg) {
-        $('#chat-box').append($('<div>').text(msg));
-        $('#chat-box').scrollTop($('#chat-box')[0].scrollHeight);
+    // Réception d'un message
+    socket.on('receive_message', function(data) {
+        var chatBox = $('#chat-box');
+        chatBox.append('<div><b>' + data.username + '</b> <span style="color: #aaa; font-size: 0.9em;">[' + data.timestamp + ']</span> : ' + $('<div>').text(data.content).html() + '</div>');
+        chatBox.scrollTop(chatBox[0].scrollHeight);
     });
 </script>
 </body>

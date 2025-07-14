@@ -1,30 +1,22 @@
 
-import eventlet
-eventlet.monkey_patch()
+
 import os
 if not os.path.exists('instance'):
     os.makedirs('instance')
-# Supprime la base existante si elle est corrompue (Render reset)
-db_path = os.path.join('instance', 'users.db')
-if os.path.exists(db_path):
-    try:
-        os.remove(db_path)
-    except Exception:
-        pass
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_socketio import SocketIO, send
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin, current_user
 from email_validator import validate_email, EmailNotValidError
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_socketio import SocketIO, emit, join_room
 
 app = Flask("NrzCommunication", instance_relative_config=True)
 app.config['SECRET_KEY'] = 'secret!'
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(app.instance_path, 'users.db')}"
 db = SQLAlchemy(app)
-socketio = SocketIO(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+socketio = SocketIO(app, async_mode='eventlet')
 # Création des tables à chaque démarrage
 with app.app_context():
     db.create_all()
@@ -38,6 +30,12 @@ class User(UserMixin, db.Model):
     ban_status = db.Column(db.String(20), default=None)  # None, 'temp', 'perm'
     ban_reason = db.Column(db.String(255), default=None)
     ban_until = db.Column(db.DateTime, default=None)
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, server_default=db.func.now())
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -143,18 +141,36 @@ def admin_panel():
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html', username=current_user.username)
+    messages = Message.query.order_by(Message.timestamp.asc()).limit(100).all()
+    return render_template('index.html', username=current_user.username, messages=messages)
 
-@socketio.on('message')
-def handle_message(msg):
-    if current_user.is_authenticated:
-        # Empêche les bannis d'envoyer des messages
-        from datetime import datetime
-        if current_user.ban_status == 'perm':
-            return
-        if current_user.ban_status == 'temp' and current_user.ban_until and current_user.ban_until > datetime.utcnow():
-            return
-        send(f"{current_user.username}: {msg}", broadcast=True)
+# API pour charger les messages (pour AJAX)
+@app.route('/messages')
+@login_required
+def get_messages():
+    messages = Message.query.order_by(Message.timestamp.asc()).limit(100).all()
+    return jsonify([
+        {"username": m.username, "content": m.content, "timestamp": m.timestamp.strftime('%d/%m/%Y %H:%M')} for m in messages
+    ])
+
+# SocketIO event pour envoyer un message
+@socketio.on('send_message')
+def handle_send_message(data):
+    if not current_user.is_authenticated:
+        return
+    content = data.get('content', '').strip()
+    if not content:
+        return
+    msg = Message(username=current_user.username, content=content)
+    db.session.add(msg)
+    db.session.commit()
+    emit('receive_message', {
+        'username': current_user.username,
+        'content': content,
+        'timestamp': msg.timestamp.strftime('%d/%m/%Y %H:%M')
+    }, broadcast=True)
+
+
 
 if __name__ == '__main__':
     # Création d'un compte admin par défaut si aucun admin n'existe
@@ -168,4 +184,4 @@ if __name__ == '__main__':
             )
             db.session.add(admin)
             db.session.commit()
-    socketio.run(app, debug=True)
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
