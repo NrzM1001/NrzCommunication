@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 users.db
 instance/
+CodeCom
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
