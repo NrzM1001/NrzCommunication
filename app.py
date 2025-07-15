@@ -16,10 +16,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(app.instance_p
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-socketio = SocketIO(app, async_mode='eventlet')
-# Création des tables à chaque démarrage
-with app.app_context():
-    db.create_all()
+socketio = SocketIO(app, async_mode='threading')
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -173,8 +170,9 @@ def handle_send_message(data):
 
 
 if __name__ == '__main__':
-    # Création d'un compte admin par défaut si aucun admin n'existe
+    # Création des tables et du compte admin par défaut
     with app.app_context():
+        db.create_all()
         if not User.query.filter_by(is_admin=True).first():
             admin = User(
                 username='NrzM1001',
